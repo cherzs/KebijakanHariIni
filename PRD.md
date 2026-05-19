@@ -737,7 +737,7 @@ Policy tracker Indonesia yang membuat kebijakan pemerintah bisa dipahami siapa s
 - "Urusan negara, urusan kita."
 
 **Sub-tagline (untuk header):**
-"Baca, pahami, dan pantau kebijakan pemerintah Indonesia — tanpa jargon."
+"Baca, pahami, dan pantau kebijakan pemerintah Indonesia."
 
 ---
 

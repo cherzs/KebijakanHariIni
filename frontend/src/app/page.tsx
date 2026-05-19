@@ -34,7 +34,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           Kebijakan pemerintah, dibahasarkan.
         </h1>
         <p className="text-gray-600 text-lg mb-6">
-          Baca, pahami, dan pantau kebijakan pemerintah Indonesia — tanpa jargon.
+          Baca, pahami, dan pantau kebijakan pemerintah Indonesia.
         </p>
         <div className="max-w-xl mx-auto">
           <SearchBar />
