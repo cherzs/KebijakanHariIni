@@ -153,4 +153,22 @@ class RawDocument(Base):
     )
 
 
+class ScrapeLog(Base):
+    __tablename__ = "scrape_logs"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    scraper_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="running")
+    items_found: Mapped[int] = mapped_column(Integer, default=0)
+    items_saved: Mapped[int] = mapped_column(Integer, default=0)
+    items_skipped: Mapped[int] = mapped_column(Integer, default=0)
+    error_message: Mapped[str | None] = mapped_column(Text)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        Index("idx_scrape_logs_started", "started_at"),
+    )
+
+
 Category.policies = relationship("Policy", secondary="policy_categories", back_populates="categories")

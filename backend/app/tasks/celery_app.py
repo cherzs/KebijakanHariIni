@@ -1,8 +1,11 @@
 import uuid
+import logging
 from celery import Celery
 from ..core.config import Settings
 
 settings = Settings()
+
+logger = logging.getLogger(__name__)
 
 celery_app = Celery(
     "kawalkebijakan",
@@ -16,6 +19,9 @@ celery_app.conf.update(
     result_serializer="json",
     timezone="Asia/Jakarta",
     enable_utc=True,
+    task_track_started=True,
+    task_time_limit=300,
+    task_soft_time_limit=240,
 )
 
 
@@ -27,12 +33,9 @@ def process_policy_ai(self, policy_id: str, force: bool = False):
         summarize_policy,
         classify_category,
         detect_status,
-        extract_timeline,
         explain_impact,
         generate_simple_explanation,
     )
-    from ..schemas.policies import TimelineCreate
-    from ..models.models import PolicyTimeline
 
     db = SessionLocal()
     try:
@@ -52,17 +55,14 @@ def process_policy_ai(self, policy_id: str, force: bool = False):
         if not policy.impact_explanation or force:
             policy.impact_explanation = explain_impact(policy.title, sources)
 
-        if not policy.status or policy.status == "wacana" or force:
-            detected = detect_status(policy.title, sources_text)
-            if detected in ["wacana", "draf", "dibahas", "disahkan", "berlaku", "ditunda", "dibatalkan"]:
-                policy.status = detected
-
         db.commit()
+        return {"status": "completed", "policy_id": policy_id}
 
+    except Exception as e:
+        logger.error(f"AI processing error for policy {policy_id}: {e}")
+        return {"status": "error", "message": str(e)}
     finally:
         db.close()
-
-    return {"status": "completed", "policy_id": policy_id}
 
 
 @celery_app.task(bind=True)
@@ -74,39 +74,135 @@ def run_rss_scraper(self):
     try:
         scraper = RSSScraper()
         results = scraper.scrape_all(db)
+        logger.info(f"RSS scrape results: {results}")
         return {"status": "completed", "results": results}
+    except Exception as e:
+        logger.error(f"RSS scraper error: {e}")
+        return {"status": "error", "message": str(e)}
     finally:
         db.close()
 
 
 @celery_app.task(bind=True)
-def run_jdih_scraper(self):
+def run_jdih_setneg_scraper(self):
     from ..core.database import SessionLocal
     from ..scrapers.jdih_scraper import JDIHSetnegScraper
 
     db = SessionLocal()
     try:
         scraper = JDIHSetnegScraper()
-        saved = scraper.scrape_regulations(db)
-        return {"status": "completed", "saved": saved}
+        results = scraper.scrape_regulations(db)
+        logger.info(f"JDIH Setneg scrape results: {results}")
+        return {"status": "completed", "results": results}
+    except Exception as e:
+        logger.error(f"JDIH Setneg scraper error: {e}")
+        return {"status": "error", "message": str(e)}
     finally:
         db.close()
 
 
 @celery_app.task(bind=True)
-def run_all_scrapers(self):
-    results = {}
+def run_jdih_bpk_scraper(self):
+    from ..core.database import SessionLocal
+    from ..scrapers.jdih_bpk_scraper import JDIHBPKScraper
+
+    db = SessionLocal()
     try:
-        rss_result = run_rss_scraper.delay()
-        results["rss_task_id"] = rss_result.id
+        scraper = JDIHBPKScraper()
+        results = scraper.scrape_regulations(db)
+        logger.info(f"JDIH BPK scrape results: {results}")
+        return {"status": "completed", "results": results}
     except Exception as e:
-        results["rss_error"] = str(e)
+        logger.error(f"JDIH BPK scraper error: {e}")
+        return {"status": "error", "message": str(e)}
+    finally:
+        db.close()
+
+
+@celery_app.task(bind=True)
+def run_dpr_scraper(self):
+    from ..core.database import SessionLocal
+    from ..scrapers.dpr_scraper import DPRProlegnasScraper
+
+    db = SessionLocal()
+    try:
+        scraper = DPRProlegnasScraper()
+        results = scraper.scrape_prolegnas(db)
+        logger.info(f"DPR scrape results: {results}")
+        return {"status": "completed", "results": results}
+    except Exception as e:
+        logger.error(f"DPR scraper error: {e}")
+        return {"status": "error", "message": str(e)}
+    finally:
+        db.close()
+
+
+@celery_app.task(bind=True)
+def run_kementerian_scraper(self):
+    from ..core.database import SessionLocal
+    from ..scrapers.kementerian_scraper import KementerianScraper
+
+    db = SessionLocal()
+    try:
+        scraper = KementerianScraper()
+        results = scraper.scrape_all(db)
+        logger.info(f"Kementerian scrape results: {results}")
+        return {"status": "completed", "results": results}
+    except Exception as e:
+        logger.error(f"Kementerian scraper error: {e}")
+        return {"status": "error", "message": str(e)}
+    finally:
+        db.close()
+
+
+@celery_app.task(bind=True)
+def cluster_and_create_drafts(self):
+    from ..core.database import SessionLocal
+    from ..models.models import User
+    from ..services.pipeline import process_unprocessed_documents
+    from sqlalchemy import select
+
+    db = SessionLocal()
+    try:
+        admin = db.execute(select(User).where(User.role == "admin").limit(1)).scalar_one_or_none()
+        admin_id = admin.id if admin else None
+
+        policies = process_unprocessed_documents(db, admin_user_id=admin_id)
+        logger.info(f"Created {len(policies)} draft policies from clustering")
+
+        policy_ids = [str(p.id) for p in policies]
+        return {"status": "completed", "drafts_created": len(policies), "policy_ids": policy_ids}
+    except Exception as e:
+        logger.error(f"Clustering error: {e}")
+        return {"status": "error", "message": str(e)}
+    finally:
+        db.close()
+
+
+@celery_app.task(bind=True)
+def run_full_pipeline(self):
+    results = {}
+
+    scraper_tasks = [
+        ("rss", run_rss_scraper),
+        ("jdih_setneg", run_jdih_setneg_scraper),
+        ("jdih_bpk", run_jdih_bpk_scraper),
+        ("dpr", run_dpr_scraper),
+        ("kementerian", run_kementerian_scraper),
+    ]
+
+    for name, task_func in scraper_tasks:
+        try:
+            task = task_func.delay()
+            results[name] = {"task_id": task.id, "status": "dispatched"}
+        except Exception as e:
+            results[name] = {"status": "error", "message": str(e)}
 
     try:
-        jdih_result = run_jdih_scraper.delay()
-        results["jdih_task_id"] = jdih_result.id
+        cluster_task = cluster_and_create_drafts.delay()
+        results["clustering"] = {"task_id": cluster_task.id, "status": "dispatched"}
     except Exception as e:
-        results["jdih_error"] = str(e)
+        results["clustering"] = {"status": "error", "message": str(e)}
 
     return {"status": "dispatched", "results": results}
 
