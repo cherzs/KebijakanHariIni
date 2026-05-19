@@ -1,0 +1,51 @@
+import uuid
+from ..core.database import SessionLocal
+from ..core.security import get_password_hash
+from ..models.models import User, Category
+
+CATEGORIES = [
+    {"slug": "ekonomi", "name": "Ekonomi", "description": "Kebijakan ekonomi makro dan mikro"},
+    {"slug": "pajak", "name": "Pajak", "description": "Kebijakan perpajakan"},
+    {"slug": "umkm", "name": "UMKM", "description": "Kebijakan usaha mikro, kecil, dan menengah"},
+    {"slug": "tenaga-kerja", "name": "Tenaga Kerja", "description": "Kebijakan ketenagakerjaan"},
+    {"slug": "pendidikan", "name": "Pendidikan", "description": "Kebijakan pendidikan"},
+    {"slug": "kesehatan", "name": "Kesehatan", "description": "Kebijakan kesehatan"},
+    {"slug": "digital-teknologi", "name": "Digital & Teknologi", "description": "Kebijakan digital dan teknologi"},
+    {"slug": "infrastruktur", "name": "Infrastruktur", "description": "Kebijakan infrastruktur"},
+    {"slug": "hukum", "name": "Hukum", "description": "Kebijakan hukum dan peraturan"},
+]
+
+
+def seed_db():
+    db = SessionLocal()
+    try:
+        admin_email = "admin@kawalkebijakan.id"
+        existing = db.query(User).filter(User.email == admin_email).first()
+        if not existing:
+            admin = User(
+                email=admin_email,
+                hashed_password=get_password_hash("admin123"),
+                full_name="Admin KawalKebijakan",
+                role="admin",
+                is_active=True,
+            )
+            db.add(admin)
+            db.commit()
+            print(f"Admin created: {admin_email}")
+        else:
+            print(f"Admin already exists: {admin_email}")
+
+        for cat_data in CATEGORIES:
+            existing_cat = db.query(Category).filter(Category.slug == cat_data["slug"]).first()
+            if not existing_cat:
+                cat = Category(**cat_data)
+                db.add(cat)
+                print(f"Category created: {cat_data['name']}")
+        db.commit()
+
+    finally:
+        db.close()
+
+
+if __name__ == "__main__":
+    seed_db()

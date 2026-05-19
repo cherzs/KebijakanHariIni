@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-primary: #1e40af;
+  --color-primary-light: #3b82f6;
+  --color-primary-dark: #1e3a8a;
+  --color-secondary: #059669;
+  --color-secondary-light: #10b981;
+  --color-accent: #d97706;
+  --color-accent-light: #f59e0b;
+  --color-bg: #f8fafc;
+  --color-bg-card: #ffffff;
+  --color-text: #1e293b;
+  --color-text-light: #64748b;
+  --color-border: #e2e8f0;
+
+  --color-status-wacana: #8b5cf6;
+  --color-status-draf: #f59e0b;
+  --color-status-dibahas: #3b82f6;
+  --color-status-disahkan: #10b981;
+  --color-status-berlaku: #059669;
+  --color-status-ditunda: #ef4444;
+  --color-status-dibatalkan: #6b7280;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+}
