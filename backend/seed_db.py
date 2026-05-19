@@ -1,9 +1,7 @@
-"""Seed the database with initial data."""
-
 import sys
 import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "."))
 
 from app.core.database import engine, SessionLocal, Base
 from app.models.models import User, Category
@@ -19,6 +17,10 @@ CATEGORIES = [
     {"slug": "digital-teknologi", "name": "Digital & Teknologi", "description": "Kebijakan digital dan teknologi"},
     {"slug": "infrastruktur", "name": "Infrastruktur", "description": "Kebijakan infrastruktur"},
     {"slug": "hukum", "name": "Hukum", "description": "Kebijakan hukum dan peraturan"},
+    {"slug": "bansos", "name": "Bantuan Sosial", "description": "Kebijakan bantuan sosial dan subsidi"},
+    {"slug": "pangan", "name": "Pangan", "description": "Kebijakan pangan dan pertanian"},
+    {"slug": "transportasi", "name": "Transportasi", "description": "Kebijakan transportasi publik"},
+    {"slug": "perumahan", "name": "Perumahan", "description": "Kebijakan perumahan dan permukiman"},
 ]
 
 
@@ -38,7 +40,7 @@ def seed():
             )
             db.add(admin)
             db.commit()
-            print(f"Admin created: {admin_email} / admin123")
+            print(f"Admin created: {admin_email}")
         else:
             print(f"Admin already exists: {admin_email}")
 
@@ -48,6 +50,10 @@ def seed():
                 cat = Category(**cat_data)
                 db.add(cat)
                 print(f"Category created: {cat_data['name']}")
+            else:
+                existing_cat.name = cat_data["name"]
+                existing_cat.description = cat_data["description"]
+                print(f"Category updated: {cat_data['name']}")
         db.commit()
         print("Seed completed!")
     finally:

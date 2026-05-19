@@ -37,8 +37,8 @@ def list_all_policies(
     db: Session = Depends(get_db),
     user=Depends(require_editor),
 ):
-    pub = published_status or None
-    return list_policies(db, page=page, limit=limit, status=status, published_status=pub if pub else "published")
+    pub = published_status if published_status else None
+    return list_policies(db, page=page, limit=limit, status=status, published_status=pub)
 
 
 @router.post("", response_model=PolicyResponse, status_code=status.HTTP_201_CREATED)

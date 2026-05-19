@@ -32,8 +32,14 @@ def create_policy(db: Session, data: PolicyCreate, user_id: uuid.UUID) -> Policy
         title=data.title,
         slug=slug,
         summary_30sec=data.summary_30sec,
+        summary_long=data.summary_long,
         simple_explanation=data.simple_explanation,
         impact_explanation=data.impact_explanation,
+        affected_groups=data.affected_groups,
+        government_claim=data.government_claim,
+        public_criticism=data.public_criticism,
+        source_confidence=data.source_confidence,
+        verification_status=data.verification_status,
         status=data.status,
         primary_category_id=data.primary_category_id,
         created_by=user_id,
@@ -82,10 +88,12 @@ def list_policies(
     limit: int = 20,
     status: str | None = None,
     category_slug: str | None = None,
-    published_status: str = "published",
+    published_status: str | None = "published",
     sort_by: str = "updated_at",
 ) -> PolicyListResponse:
-    query = select(Policy).where(Policy.published_status == published_status)
+    query = select(Policy)
+    if published_status:
+        query = query.where(Policy.published_status == published_status)
 
     if status:
         query = query.where(Policy.status == status)

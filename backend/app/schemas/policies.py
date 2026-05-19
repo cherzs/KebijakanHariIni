@@ -46,9 +46,10 @@ class SourceCreate(BaseModel):
     source_type: str = Field(..., pattern="^(official|news)$")
     title: str = Field(..., max_length=500)
     url: str
-    snippet: str | None = Field(None, max_length=200)
+    snippet: str | None = Field(None, max_length=500)
     published_date: date | None = None
     site_name: str | None = None
+    verification_status: str = Field("needs_verification", pattern="^(verified|needs_verification|unverifiable)$")
 
 
 class SourceResponse(BaseModel):
@@ -59,6 +60,7 @@ class SourceResponse(BaseModel):
     snippet: str | None = None
     published_date: date | None = None
     site_name: str | None = None
+    verification_status: str = "needs_verification"
 
     model_config = {"from_attributes": True}
 
@@ -91,8 +93,14 @@ PUBLISHED_STATUSES = ["draft", "published", "archived"]
 class PolicyCreate(BaseModel):
     title: str = Field(..., max_length=500)
     summary_30sec: str | None = None
+    summary_long: str | None = None
     simple_explanation: str | None = None
     impact_explanation: str | None = None
+    affected_groups: str | None = None
+    government_claim: str | None = None
+    public_criticism: str | None = None
+    source_confidence: str = Field("medium", pattern="^(high|medium|low)$")
+    verification_status: str = Field("needs_verification", pattern="^(verified|needs_verification|unverifiable)$")
     status: str = Field("wacana", pattern=f"^({'|'.join(POLICY_STATUSES)})$")
     primary_category_id: UUID | None = None
     category_ids: list[UUID] = []
@@ -102,8 +110,14 @@ class PolicyUpdate(BaseModel):
     title: str | None = Field(None, max_length=500)
     slug: str | None = None
     summary_30sec: str | None = None
+    summary_long: str | None = None
     simple_explanation: str | None = None
     impact_explanation: str | None = None
+    affected_groups: str | None = None
+    government_claim: str | None = None
+    public_criticism: str | None = None
+    source_confidence: str | None = Field(None, pattern="^(high|medium|low)$")
+    verification_status: str | None = Field(None, pattern="^(verified|needs_verification|unverifiable)$")
     status: str | None = Field(None, pattern=f"^({'|'.join(POLICY_STATUSES)})$")
     primary_category_id: UUID | None = None
     category_ids: list[UUID] | None = None
@@ -115,14 +129,34 @@ class PolicyResponse(BaseModel):
     title: str
     slug: str
     summary_30sec: str | None = None
+    summary_long: str | None = None
     simple_explanation: str | None = None
     impact_explanation: str | None = None
+    affected_groups: str | None = None
+    government_claim: str | None = None
+    public_criticism: str | None = None
+    source_confidence: str = "medium"
+    verification_status: str = "needs_verification"
     status: str
     primary_category: CategoryResponse | None = None
     categories: list[CategoryResponse] = []
     timelines: list[TimelineResponse] = []
     sources: list[SourceResponse] = []
     published_status: str
+    published_at: datetime | None = None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class PolicyListItem(BaseModel):
+    id: UUID
+    title: str
+    slug: str
+    status: str
+    summary_30sec: str | None = None
+    primary_category: CategoryResponse | None = None
     published_at: datetime | None = None
     created_at: datetime
     updated_at: datetime

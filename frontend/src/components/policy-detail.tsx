@@ -28,6 +28,33 @@ export function PolicyDetailView({ policy }: PolicyDetailViewProps) {
         </section>
       )}
 
+      {policy.affected_groups && (
+        <section className="mb-8">
+          <div className="bg-purple-50 border border-purple-200 rounded-xl p-5">
+            <h2 className="text-sm font-semibold text-purple-800 uppercase tracking-wider mb-2">
+              Siapa yang Terdampak
+            </h2>
+            <p className="text-gray-800 leading-relaxed">{policy.affected_groups}</p>
+          </div>
+        </section>
+      )}
+
+      {policy.government_claim && (
+        <section className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">Klaim Pemerintah</h2>
+          <p className="text-gray-700 leading-relaxed">{policy.government_claim}</p>
+        </section>
+      )}
+
+      {policy.public_criticism && (
+        <section className="mb-8">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-5">
+            <h2 className="text-lg font-semibold text-red-900 mb-3">Kritik Publik</h2>
+            <p className="text-gray-700 leading-relaxed">{policy.public_criticism}</p>
+          </div>
+        </section>
+      )}
+
       {policy.simple_explanation && (
         <section className="mb-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-3">Penjelasan Sederhana</h2>

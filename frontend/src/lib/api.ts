@@ -63,11 +63,17 @@ export interface PolicyListItem {
 }
 
 export interface PolicyDetail extends PolicyListItem {
+  summary_long: string | null;
+  affected_groups: string | null;
+  government_claim: string | null;
+  public_criticism: string | null;
+  source_confidence: string;
+  verification_status: string;
   simple_explanation: string | null;
   impact_explanation: string | null;
   categories: Category[];
   timelines: Timeline[];
-  sources: Source[];
+  sources: SourceResponse[];
   published_status: string;
 }
 

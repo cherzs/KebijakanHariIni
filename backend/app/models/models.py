@@ -39,8 +39,14 @@ class Policy(Base):
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     slug: Mapped[str] = mapped_column(String(500), unique=True, nullable=False)
     summary_30sec: Mapped[str | None] = mapped_column(Text)
+    summary_long: Mapped[str | None] = mapped_column(Text)
     simple_explanation: Mapped[str | None] = mapped_column(Text)
     impact_explanation: Mapped[str | None] = mapped_column(Text)
+    affected_groups: Mapped[str | None] = mapped_column(Text)
+    government_claim: Mapped[str | None] = mapped_column(Text)
+    public_criticism: Mapped[str | None] = mapped_column(Text)
+    source_confidence: Mapped[str] = mapped_column(String(20), nullable=False, default="medium")
+    verification_status: Mapped[str] = mapped_column(String(30), nullable=False, default="needs_verification")
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="wacana")
     primary_category_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("categories.id"))
     published_status: Mapped[str] = mapped_column(String(20), nullable=False, default="draft")
@@ -63,6 +69,14 @@ class Policy(Base):
         CheckConstraint(
             "published_status IN ('draft','published','archived')",
             name="ck_policy_published_status",
+        ),
+        CheckConstraint(
+            "source_confidence IN ('high','medium','low')",
+            name="ck_source_confidence",
+        ),
+        CheckConstraint(
+            "verification_status IN ('verified','needs_verification','unverifiable')",
+            name="ck_verification_status",
         ),
         Index("idx_policies_status", "status"),
         Index("idx_policies_published", "published_status"),
@@ -102,12 +116,17 @@ class Source(Base):
     snippet: Mapped[str | None] = mapped_column(Text)
     published_date: Mapped[datetime | None] = mapped_column(Date)
     site_name: Mapped[str | None] = mapped_column(String(200))
+    verification_status: Mapped[str] = mapped_column(String(30), nullable=False, default="needs_verification")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now)
 
     policy: Mapped["Policy"] = relationship(back_populates="sources")
 
     __table_args__ = (
         CheckConstraint("source_type IN ('official', 'news')", name="ck_source_type"),
+        CheckConstraint(
+            "verification_status IN ('verified','needs_verification','unverifiable')",
+            name="ck_source_verification",
+        ),
     )
 
 
@@ -115,12 +134,14 @@ class RawDocument(Base):
     __tablename__ = "raw_documents"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    source_url: Mapped[str] = mapped_column(Text, nullable=False)
+    source_url: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
     source_type: Mapped[str] = mapped_column(String(50), nullable=False)
     site_name: Mapped[str | None] = mapped_column(String(200))
     title: Mapped[str | None] = mapped_column(String(500))
     content_text: Mapped[str | None] = mapped_column(Text)
+    snippet: Mapped[str | None] = mapped_column(Text)
     published_date: Mapped[datetime | None] = mapped_column(Date)
+    metadata_json: Mapped[str | None] = mapped_column(Text)
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now)
     processed: Mapped[bool] = mapped_column(Boolean, default=False)
     policy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("policies.id"))
@@ -128,6 +149,7 @@ class RawDocument(Base):
 
     __table_args__ = (
         Index("idx_raw_docs_processed", "processed"),
+        Index("idx_raw_docs_source_url", "source_url", unique=True),
     )
 
 

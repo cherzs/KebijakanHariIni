@@ -23,7 +23,7 @@ celery_app.conf.update(
 def process_policy_ai(self, policy_id: str, force: bool = False):
     from ..core.database import SessionLocal
     from ..models.models import Policy
-    from .ai_processor import (
+    from ..services.ai_processor import (
         summarize_policy,
         classify_category,
         detect_status,
@@ -31,31 +31,26 @@ def process_policy_ai(self, policy_id: str, force: bool = False):
         explain_impact,
         generate_simple_explanation,
     )
-    from ..services.policy_service import update_policy, get_policy_by_id
-    from ..schemas.policies import PolicyUpdate, TimelineCreate
+    from ..schemas.policies import TimelineCreate
+    from ..models.models import PolicyTimeline
 
     db = SessionLocal()
     try:
-        policy = get_policy_by_id(db, uuid.UUID(policy_id))
+        policy = db.get(Policy, uuid.UUID(policy_id))
         if not policy:
             return {"status": "error", "message": "Policy not found"}
 
         sources = policy.sources if policy.sources else []
         sources_text = "\n".join([f"- {s.title} ({s.url})" for s in sources])
 
-        summarize_policy(policy.title, sources)
-
         if not policy.summary_30sec or force:
-            summary = summarize_policy(policy.title, sources)
-            policy.summary_30sec = summary
+            policy.summary_30sec = summarize_policy(policy.title, sources)
 
         if not policy.simple_explanation or force:
-            explanation = generate_simple_explanation(policy.title, sources)
-            policy.simple_explanation = explanation
+            policy.simple_explanation = generate_simple_explanation(policy.title, sources)
 
         if not policy.impact_explanation or force:
-            impact = explain_impact(policy.title, sources)
-            policy.impact_explanation = impact
+            policy.impact_explanation = explain_impact(policy.title, sources)
 
         if not policy.status or policy.status == "wacana" or force:
             detected = detect_status(policy.title, sources_text)
@@ -68,6 +63,52 @@ def process_policy_ai(self, policy_id: str, force: bool = False):
         db.close()
 
     return {"status": "completed", "policy_id": policy_id}
+
+
+@celery_app.task(bind=True)
+def run_rss_scraper(self):
+    from ..core.database import SessionLocal
+    from ..scrapers.rss_scraper import RSSScraper
+
+    db = SessionLocal()
+    try:
+        scraper = RSSScraper()
+        results = scraper.scrape_all(db)
+        return {"status": "completed", "results": results}
+    finally:
+        db.close()
+
+
+@celery_app.task(bind=True)
+def run_jdih_scraper(self):
+    from ..core.database import SessionLocal
+    from ..scrapers.jdih_scraper import JDIHSetnegScraper
+
+    db = SessionLocal()
+    try:
+        scraper = JDIHSetnegScraper()
+        saved = scraper.scrape_regulations(db)
+        return {"status": "completed", "saved": saved}
+    finally:
+        db.close()
+
+
+@celery_app.task(bind=True)
+def run_all_scrapers(self):
+    results = {}
+    try:
+        rss_result = run_rss_scraper.delay()
+        results["rss_task_id"] = rss_result.id
+    except Exception as e:
+        results["rss_error"] = str(e)
+
+    try:
+        jdih_result = run_jdih_scraper.delay()
+        results["jdih_task_id"] = jdih_result.id
+    except Exception as e:
+        results["jdih_error"] = str(e)
+
+    return {"status": "dispatched", "results": results}
 
 
 def trigger_ai_processing(policy_id: uuid.UUID, force: bool = False):
