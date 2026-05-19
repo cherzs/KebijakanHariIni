@@ -11,6 +11,14 @@ const geistSans = Geist({
 export const metadata: Metadata = {
   title: "KawalKebijakan — Pahami kebijakan pemerintah dalam 30 detik",
   description: "Membantu publik memahami kebijakan pemerintah Indonesia dengan bahasa yang sederhana, netral, dan berbasis sumber.",
+  icons: {
+    icon: "/logo.png",
+  },
+  openGraph: {
+    title: "KawalKebijakan",
+    description: "Pahami kebijakan pemerintah dalam 30 detik",
+    images: ["/logo.png"],
+  },
 };
 
 export default function RootLayout({

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { STATUS_LABELS, STATUS_COLORS } from "@/lib/api";
 
 interface StatusBadgeProps {
@@ -33,9 +34,7 @@ export function Header() {
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">KK</span>
-          </div>
+          <Image src="/logo.png" alt="KawalKebijakan" width={32} height={32} className="rounded-lg" />
           <span className="font-bold text-lg text-gray-900">KawalKebijakan</span>
         </Link>
         <nav className="flex items-center gap-6">
@@ -53,7 +52,10 @@ export function Footer() {
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
-            <h3 className="font-bold text-gray-900 mb-2">KawalKebijakan</h3>
+            <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
+            <Image src="/logo.png" alt="KawalKebijakan" width={20} height={20} className="rounded" />
+            KawalKebijakan
+          </h3>
             <p className="text-sm text-gray-500">
               Membantu publik memahami kebijakan pemerintah tanpa harus membaca puluhan berita dan dokumen hukum.
             </p>
